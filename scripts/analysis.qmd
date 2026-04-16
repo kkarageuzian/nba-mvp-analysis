@@ -4,23 +4,6 @@ format: pdf
 author: "Kreekor Karageuzian & John Malone"
 ---
 
-## Exploring the Data
-Answer the following questions:
-- What is your outcome variable(s)? How well does it measure the outcome you are interested? How does it relate to your expectations?
-- What are your key explanatory variables?
-- In addition, create a table of summary statistics for the variables you are planning to use.
-
-
-## Data Wrangling and Transformations
-Our data was obtained from two datasets: One from NBA Stuffer named nba_2022-23_all_stats.csv and another from Kaggle named nba_player_props.csv, which include observations about player statistics and advanced metrics. These were merged using player names after cleaning inconsistencies in formatting.
-
-We removed a few missing values to ensure accurate calculations and created new variables using z-score standardization. These standardized variables were used to construct a production score and an advanced score, which were then combined into a final MVP score. We focused only on players who received MVP votes to narrow the analysis to relevant candidates.
-
-- Are you deciding to exclude any observations? If so, why?
-
-We created a new variable to import MVP votes per player to compare to our custom MVP model. We are also planning on adding another variable, Team Win %, add another pillar in our custom model. 
-
-
 ```{r}
 library(tidyverse)
 library(janitor)
