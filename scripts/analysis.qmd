@@ -31,8 +31,8 @@ library(tinytex)
 ```{r}
 # Read in player props dataset and clean column names
 # Create a cleaned player name column so names match across datasets
-props <- read_csv("nba_player_props.csv") %>%
-  clean_names() %>%
+props <- read_csv("nba_player_props.csv") |>
+  clean_names() |>
   mutate(player_clean = stri_trans_general(name, "Latin-ASCII"))
 
 # Read in advanced stats datset and clean column names
@@ -59,6 +59,29 @@ nba_combined <- props %>%
   left_join(advanced_small, by = "player_clean")
 
 nba_combined
+```
+
+
+```{r}
+library(dplyr)
+#Add row of MVP points, only the 12 players seen below received votes. Data is from Basketball Reference
+nba_combine <- nba_combined %>%
+  mutate(mvp_points = case_when(
+    name == "Joel Embiid"             ~ 915,
+    name == "Nikola Jokic"            ~ 674,
+    name == "Giannis Antetokounmpo"   ~ 606,
+    name == "Jayson Tatum"            ~ 280,
+    name == "Shai Gilgeous-Alexander" ~ 46,
+    name == "Donovan Mitchell"        ~ 30,
+    name == "Domantas Sabonis"        ~ 27,
+    name == "Luka Doncic"             ~ 10,
+    name == "Stephen Curry"           ~ 5,
+    name == "Jimmy Butler"            ~ 3,
+    name == "De'Aaron Fox"            ~ 2,
+    name == "Jalen Brunson"           ~ 1,
+    TRUE ~ 0  # Assigns 0 to everyone else
+  ))
+
 ```
 
 ```{r}
@@ -254,6 +277,28 @@ ggplot(mvp_compare %>% filter(mvp_points > 0),
   labs(
     title = "Points + Rebounds + Assists vs MVP Voting Points",
     x = "Points + Rebounds + Assists Per Game",
+    y = "MVP Points"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points)) +
+  geom_point(size = 3) +
+  labs(
+    title = "Offesnive Rating vs MVP Voting Points",
+    x = "Offensive Rating",
+    y = "MVP Points"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(mvp_compare, aes(x = d_rtg, y = mvp_points)) +
+  geom_point(size = 3) +
+  labs(
+    title = "Defensive Rating vs MVP Voting Points",
+    x = "Defensive Rating",
     y = "MVP Points"
   ) +
   theme_minimal()
