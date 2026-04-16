@@ -62,66 +62,6 @@ nba_combined
 ```
 
 ```{r}
-# Create table for MVP voting results for players who received votes
-mvp_votes <- tibble(
-  name = c(
-    "Joel Embiid",
-    "Nikola Jokic",
-    "Giannis Antetokounmpo",
-    "Jayson Tatum",
-    "Shai Gilgeous-Alexander",
-    "Donovan Mitchell",
-    "Domantas Sabonis",
-    "Luka Doncic",
-    "Stephen Curry",
-    "Jimmy Butler",
-    "De'Aaron Fox",
-    "Jalen Brunson",
-    "Ja Morant"
-  ),
-  mvp_points = c(915, 674, 606, 280, 46, 30, 27, 10, 5, 3, 2, 1, 0)
-)
-
-# Merge MVP voting results with custom MVP model dataset
-mvp_compare <- mvp_results %>%
-  left_join(mvp_votes, by = "name")
-
-nba_combined
-```
-
-```{r}
-# Check Jokic and Doncic matched correctly after merge
-# Used AI to help me as their per, bpm, and ws columns were appearing as NA
-nba_combined %>%
-  filter(name %in% c("Nikola Jokic", "Luka Doncic")) %>%
-  select(name, per, bpm, ws)
-```
-
-```{r}
-# Filter out to NBA players who received MVP Votes
-mvp_players <- c(
-  "Joel Embiid",
-  "Nikola Jokic",
-  "Giannis Antetokounmpo",
-  "Jayson Tatum",
-  "Shai Gilgeous-Alexander",
-  "Donovan Mitchell",
-  "Domantas Sabonis",
-  "Luka Doncic",
-  "Stephen Curry",
-  "Jimmy Butler",
-  "De'Aaron Fox",
-  "Jalen Brunson",
-  "Ja Morant"
-)
-
-# Check that MVP candidates have the advanced stats needed for MVP model
-nba_combined %>%
-  filter(name %in% mvp_players) %>%
-  select(name, per, bpm, ws, ts_percent)
-```
-
-```{r}
 # Remove rows with missing values (ensure accurate standardization and model construction)
 nba_model_clean <- nba_combined %>%
   drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws)
@@ -192,6 +132,66 @@ mvp_results <- nba_z %>%
 ```
 
 ```{r}
+# Create a table of real MVP voting results for players who received votes
+mvp_votes <- tibble(
+  name = c(
+    "Joel Embiid",
+    "Nikola Jokic",
+    "Giannis Antetokounmpo",
+    "Jayson Tatum",
+    "Shai Gilgeous-Alexander",
+    "Donovan Mitchell",
+    "Domantas Sabonis",
+    "Luka Doncic",
+    "Stephen Curry",
+    "Jimmy Butler",
+    "De'Aaron Fox",
+    "Jalen Brunson",
+    "Ja Morant"
+  ),
+  mvp_points = c(915, 674, 606, 280, 46, 30, 27, 10, 5, 3, 2, 1, 0)
+)
+
+# Join real MVP voting points to the custom MVP model results
+mvp_compare <- mvp_results %>%
+  left_join(mvp_votes, by = "name")
+
+mvp_compare
+```
+
+```{r}
+# Check Jokic and Doncic matched correctly after merge
+# Used AI to help me as their per, bpm, and ws columns were appearing as NA
+nba_combined %>%
+  filter(name %in% c("Nikola Jokic", "Luka Doncic")) %>%
+  select(name, per, bpm, ws)
+```
+
+```{r}
+# Filter out to NBA players who received MVP Votes
+mvp_players <- c(
+  "Joel Embiid",
+  "Nikola Jokic",
+  "Giannis Antetokounmpo",
+  "Jayson Tatum",
+  "Shai Gilgeous-Alexander",
+  "Donovan Mitchell",
+  "Domantas Sabonis",
+  "Luka Doncic",
+  "Stephen Curry",
+  "Jimmy Butler",
+  "De'Aaron Fox",
+  "Jalen Brunson",
+  "Ja Morant"
+)
+
+# Check that MVP candidates have the advanced stats needed for MVP model
+nba_combined %>%
+  filter(name %in% mvp_players) %>%
+  select(name, per, bpm, ws, ts_percent)
+```
+
+```{r}
 # Rank Players
 mvp_rankings <- mvp_results %>%
   select(name, team, production_score, advanced_score, mvp_score_temp) %>%
@@ -240,13 +240,14 @@ ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
 ```
 
 ```{r}
-# Plot for Points + Rebounds + Assists vs MVP Voting Points
-ggplot(nba_total %>% filter(mvp_points > 0),
-       aes(x = PTS + TRB + AST, y = mvp_points)) +
+# Plot total box score production against real MVP voting points
+ggplot(mvp_compare %>% filter(mvp_points > 0),
+       aes(x = ppg + rpg + apg, y = mvp_points, label = name)) +
   geom_point(size = 3) +
+  geom_text(nudge_y = 15, size = 3) +
   labs(
     title = "Points + Rebounds + Assists vs MVP Voting Points",
-    x = "Total Production (PTS + REB + AST)",
+    x = "Points + Rebounds + Assists Per Game",
     y = "MVP Points"
   ) +
   theme_minimal()
