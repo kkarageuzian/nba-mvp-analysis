@@ -1,1 +1,193 @@
+---
+title: "NBA_MVP"
+format: pdf
+author: "Kreekor Karageuzian & John Malone"
+---
 
+```{r}
+library(tidyverse)
+library(janitor)
+library(stringi)
+library(tinytex)
+```
+
+```{r}
+# Read in player props dataset and clean column names
+# Create a cleaned player name column so names match across datasets
+props <- read_csv("nba_player_props.csv") %>%
+  clean_names() %>%
+  mutate(player_clean = stri_trans_general(name, "Latin-ASCII"))
+
+# Read in advanced stats datset and clean column names
+# Create same cleaned player name column for merging
+advanced <- read_csv("nba_2022-23_all_stats.csv") %>%
+  clean_names() %>%
+  mutate(player_clean = stri_trans_general(player_name, "Latin-ASCII")) %>%
+  mutate(
+    player_clean = str_trim(player_clean),
+    player_clean = case_when(
+      str_detect(player_clean, "Jokic") ~ "Nikola Jokic", 
+      str_detect(player_clean, "Doncic") ~ "Luka Doncic",
+      TRUE ~ player_clean
+    )
+  )
+
+# Keep only advanced variables needed for MVP model
+advanced_small <- advanced %>%
+  select(player_clean, per, ws, bpm)
+
+# Merge two datasets together using cleaned player name
+# Still want to add TEAM WIN PERCENTAGE & ACTUAL MVP VOTING RESULTS variables into dataset
+nba_combined <- props %>%
+  left_join(advanced_small, by = "player_clean")
+
+nba_combined
+```
+
+```{r}
+# Check Jokic and Doncic matched correctly after merge
+# Used AI to help me as their per, bpm, and ws columns were appearing as NA
+nba_combined %>%
+  filter(name %in% c("Nikola Jokic", "Luka Doncic")) %>%
+  select(name, per, bpm, ws)
+```
+
+```{r}
+# Filter out to NBA players who received MVP Votes
+mvp_players <- c(
+  "Joel Embiid",
+  "Nikola Jokic",
+  "Giannis Antetokounmpo",
+  "Jayson Tatum",
+  "Shai Gilgeous-Alexander",
+  "Donovan Mitchell",
+  "Domantas Sabonis",
+  "Luka Doncic",
+  "Stephen Curry",
+  "Jimmy Butler",
+  "De'Aaron Fox",
+  "Jalen Brunson",
+  "Ja Morant"
+)
+
+# Check that MVP candidates have the advanced stats needed for MVP model
+nba_combined %>%
+  filter(name %in% mvp_players) %>%
+  select(name, per, bpm, ws, ts_percent)
+```
+
+```{r}
+# Remove rows with missing values (ensure accurate standardization and model construction)
+nba_model_clean <- nba_combined %>%
+  drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws)
+
+# Confirm no missinf values left in cleaned dataset for variables in use for MVP model
+colSums(is.na(nba_model_clean))
+```
+
+```{r}
+# Standardize each variable using z-scores so all stats are on same scale 
+nba_z <- nba_model_clean %>%
+  mutate(
+    PPG_z = as.numeric(scale(ppg)),
+    APG_z = as.numeric(scale(apg)),
+    RPG_z = as.numeric(scale(rpg)),
+    BLK_z = as.numeric(scale(bpg)),
+    STL_z = as.numeric(scale(spg)),
+    TO_z = as.numeric(scale(tpg)) * (-1), # multiplied by -1 because having more turnovers are worse
+    TS_z = as.numeric(scale(ts_percent)),
+    PER_z = as.numeric(scale(per)),
+    BPM_z = as.numeric(scale(bpm)),
+    WS_z = as.numeric(scale(ws)),
+  )
+```
+
+```{r}
+# Create Production Score (Box Score Stats)
+nba_z <- nba_z %>%
+  mutate(
+    production_score = (PPG_z + APG_z + RPG_z + STL_z + BLK_z + TO_z) / 6
+  )
+
+# Create Efficiency/Advanced Score
+nba_z <- nba_z %>%
+  mutate(
+    advanced_score = (TS_z + PER_z + BPM_z + WS_z) / 4
+  )
+```
+
+```{r}
+# MVP Score (Temporary - no team success yet)
+nba_z <- nba_z %>%
+  mutate(
+    mvp_score_temp = 0.5 * production_score + 0.5 * advanced_score
+  )
+```
+
+```{r}
+# Filter MVP Candidates
+mvp_players <- c(
+  "Joel Embiid",
+  "Nikola Jokic",
+  "Giannis Antetokounmpo",
+  "Jayson Tatum",
+  "Shai Gilgeous-Alexander",
+  "Donovan Mitchell",
+  "Domantas Sabonis",
+  "Luka Doncic",
+  "Stephen Curry",
+  "Jimmy Butler",
+  "De'Aaron Fox",
+  "Jalen Brunson",
+  "Ja Morant"
+)
+
+mvp_results <- nba_z %>%
+  filter(name %in% mvp_players)
+```
+
+```{r}
+# Rank Players
+mvp_rankings <- mvp_results %>%
+  select(name, team, production_score, advanced_score, mvp_score_temp) %>%
+  arrange(desc(mvp_score_temp))
+
+mvp_rankings
+```
+
+```{r}
+# Visualizing Scores
+ggplot(mvp_rankings, aes(x = reorder(name, mvp_score_temp), y = mvp_score_temp)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Custom MVP Rankings (No Team Success Yet)",
+    x = "Player",
+    y = "MVP Score"
+  ) + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(mvp_results, aes(x = production_score, y = advanced_score, label = name)) +
+  geom_point(size = 3) +
+  geom_text(nudge_y = 0.1, size = 3) +
+  labs(
+    title = "Production vs Advanced Metrics for MVP Candidates",
+    x = "Production Score (Box Score Stats)",
+    y = "Advanced Score (Efficiency Metrics)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_text(nudge_y = 0.005, size = 3) +
+  labs(
+    title = "Scoring vs Efficiency for MVP Candidates",
+    x = "Points Per Game",
+    y = "True Shooting Percentage"
+  ) +
+  theme_minimal()
+```
