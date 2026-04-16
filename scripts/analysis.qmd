@@ -37,9 +37,35 @@ advanced_small <- advanced %>%
   select(player_clean, per, ws, bpm)
 
 # Merge two datasets together using cleaned player name
-# Still want to add TEAM WIN PERCENTAGE & ACTUAL MVP VOTING RESULTS variables into dataset
+# Still want to add TEAM WIN PERCENTAGE variable into dataset
 nba_combined <- props %>%
   left_join(advanced_small, by = "player_clean")
+
+nba_combined
+```
+
+```{r}
+mvp_votes <- tibble(
+  name = c(
+    "Joel Embiid",
+    "Nikola Jokic",
+    "Giannis Antetokounmpo",
+    "Jayson Tatum",
+    "Shai Gilgeous-Alexander",
+    "Donovan Mitchell",
+    "Domantas Sabonis",
+    "Luka Doncic",
+    "Stephen Curry",
+    "Jimmy Butler",
+    "De'Aaron Fox",
+    "Jalen Brunson",
+    "Ja Morant"
+  ),
+  mvp_points = c(915, 674, 606, 280, 46, 30, 27, 10, 5, 3, 2, 1, 0)
+)
+
+mvp_compare <- mvp_results %>%
+  left_join(mvp_votes, by = "name")
 
 nba_combined
 ```
@@ -169,6 +195,7 @@ ggplot(mvp_rankings, aes(x = reorder(name, mvp_score_temp), y = mvp_score_temp))
 ```
 
 ```{r}
+# Plot for Production vs Advanced Metrics for MVP Candidates
 ggplot(mvp_results, aes(x = production_score, y = advanced_score, label = name)) +
   geom_point(size = 3) +
   geom_text(nudge_y = 0.1, size = 3) +
@@ -181,6 +208,7 @@ ggplot(mvp_results, aes(x = production_score, y = advanced_score, label = name))
 ```
 
 ```{r}
+# Plot for Scoring vs Efficiency for MVP Candidates
 ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
   geom_point(size = 3, color = "steelblue") +
   geom_text(nudge_y = 0.005, size = 3) +
@@ -190,4 +218,26 @@ ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
     y = "True Shooting Percentage"
   ) +
   theme_minimal()
+```
+
+```{r}
+# Plot for Points + Rebounds + Assists vs MVP Voting Points
+ggplot(nba_total %>% filter(mvp_points > 0),
+       aes(x = PTS + TRB + AST, y = mvp_points)) +
+  geom_point(size = 3) +
+  labs(
+    title = "Points + Rebounds + Assists vs MVP Voting Points",
+    x = "Total Production (PTS + REB + AST)",
+    y = "MVP Points"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Comparison Table for Custom Score vs Real Voting Results (without team success)
+mvp_compare_table <- mvp_compare %>%
+  select(name, team, mvp_score_temp, mvp_points) %>%
+  arrange(desc(mvp_score_temp))
+
+mvp_compare_table
 ```
