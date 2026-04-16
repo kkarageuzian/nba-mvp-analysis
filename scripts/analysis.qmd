@@ -4,6 +4,23 @@ format: pdf
 author: "Kreekor Karageuzian & John Malone"
 ---
 
+## Exploring the Data
+Answer the following questions:
+- What is your outcome variable(s)? How well does it measure the outcome you are interested? How does it relate to your expectations?
+- What are your key explanatory variables?
+- In addition, create a table of summary statistics for the variables you are planning to use.
+
+
+## Data Wrangling and Transformations
+Our data was obtained from two datasets: One from NBA Stuffer named nba_2022-23_all_stats.csv and another from Kaggle named nba_player_props.csv, which include observations about player statistics and advanced metrics. These were merged using player names after cleaning inconsistencies in formatting.
+
+We removed a few missing values to ensure accurate calculations and created new variables using z-score standardization. These standardized variables were used to construct a production score and an advanced score, which were then combined into a final MVP score. We focused only on players who received MVP votes to narrow the analysis to relevant candidates.
+
+- Are you deciding to exclude any observations? If so, why?
+
+We created a new variable to import MVP votes per player to compare to our custom MVP model. We are also planning on adding another variable, Team Win %, add another pillar in our custom model. 
+
+
 ```{r}
 library(tidyverse)
 library(janitor)
@@ -110,190 +127,6 @@ nba_model_clean <- nba_combined %>%
   drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws)
 
 # Confirm no missing values left in cleaned dataset for variables in use for MVP model
-colSums(is.na(nba_model_clean))
-```
-
-```{r}
-# Standardize each variable using z-scores so all stats are on same scale 
-nba_z <- nba_model_clean %>%
-  mutate(
-    PPG_z = as.numeric(scale(ppg)),
-    APG_z = as.numeric(scale(apg)),
-    RPG_z = as.numeric(scale(rpg)),
-    BLK_z = as.numeric(scale(bpg)),
-    STL_z = as.numeric(scale(spg)),
-    TO_z = as.numeric(scale(tpg)) * (-1), # multiplied by -1 because having more turnovers are worse
-    TS_z = as.numeric(scale(ts_percent)),
-    PER_z = as.numeric(scale(per)),
-    BPM_z = as.numeric(scale(bpm)),
-    WS_z = as.numeric(scale(ws)),
-  )
-```
-
-```{r}
-# Create Production Score (Box Score Stats)
-nba_z <- nba_z %>%
-  mutate(
-    production_score = (PPG_z + APG_z + RPG_z + STL_z + BLK_z + TO_z) / 6
-  )
-
-# Create Efficiency/Advanced Score
-nba_z <- nba_z %>%
-  mutate(
-    advanced_score = (TS_z + PER_z + BPM_z + WS_z) / 4
-  )
-```
-
-```{r}
-# MVP Score (Temporary - no team success yet)
-nba_z <- nba_z %>%
-  mutate(
-    mvp_score_temp = 0.5 * production_score + 0.5 * advanced_score
-  )
-```
-
-```{r}
-# Filter MVP Candidates
-mvp_players <- c(
-  "Joel Embiid",
-  "Nikola Jokic",
-  "Giannis Antetokounmpo",
-  "Jayson Tatum",
-  "Shai Gilgeous-Alexander",
-  "Donovan Mitchell",
-  "Domantas Sabonis",
-  "Luka Doncic",
-  "Stephen Curry",
-  "Jimmy Butler",
-  "De'Aaron Fox",
-  "Jalen Brunson",
-  "Ja Morant"
-)
-
-mvp_results <- nba_z %>%
-  filter(name %in% mvp_players)
-```
-
-```{r}
-# Rank Players
-mvp_rankings <- mvp_results %>%
-  select(name, team, production_score, advanced_score, mvp_score_temp) %>%
-  arrange(desc(mvp_score_temp))
-
-mvp_rankings
-```
-
-```{r}
-# Visualizing Scores
-ggplot(mvp_rankings, aes(x = reorder(name, mvp_score_temp), y = mvp_score_temp)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(
-    title = "Custom MVP Rankings (No Team Success Yet)",
-    x = "Player",
-    y = "MVP Score"
-  ) + 
-  theme_minimal()
-```
-
-```{r}
-# Plot for Production vs Advanced Metrics for MVP Candidates
-ggplot(mvp_results, aes(x = production_score, y = advanced_score, label = name)) +
-  geom_point(size = 3) +
-  geom_text(nudge_y = 0.1, size = 3) +
-  labs(
-    title = "Production vs Advanced Metrics for MVP Candidates",
-    x = "Production Score (Box Score Stats)",
-    y = "Advanced Score (Efficiency Metrics)"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# Plot for Scoring vs Efficiency for MVP Candidates
-ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
-  geom_point(size = 3, color = "steelblue") +
-  geom_text(nudge_y = 0.005, size = 3) +
-  labs(
-    title = "Scoring vs Efficiency for MVP Candidates",
-    x = "Points Per Game",
-    y = "True Shooting Percentage"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# Plot for Points + Rebounds + Assists vs MVP Voting Points
-ggplot(nba_total %>% filter(mvp_points > 0),
-       aes(x = PTS + TRB + AST, y = mvp_points)) +
-  geom_point(size = 3) +
-  labs(
-    title = "Points + Rebounds + Assists vs MVP Voting Points",
-    x = "Total Production (PTS + REB + AST)",
-    y = "MVP Points"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# Comparison Table for Custom Score vs Real Voting Results (without team success)
-mvp_compare_table <- mvp_compare %>%
-  select(name, team, mvp_score_temp, mvp_points) %>%
-  arrange(desc(mvp_score_temp))
-
-mvp_compare_table
-```    "Jimmy Butler",
-    "De'Aaron Fox",
-    "Jalen Brunson",
-    "Ja Morant"
-  ),
-  mvp_points = c(915, 674, 606, 280, 46, 30, 27, 10, 5, 3, 2, 1, 0)
-)
-
-mvp_compare <- mvp_results %>%
-  left_join(mvp_votes, by = "name")
-
-nba_combined
-```
-
-```{r}
-# Check Jokic and Doncic matched correctly after merge
-# Used AI to help me as their per, bpm, and ws columns were appearing as NA
-nba_combined %>%
-  filter(name %in% c("Nikola Jokic", "Luka Doncic")) %>%
-  select(name, per, bpm, ws)
-```
-
-```{r}
-# Filter out to NBA players who received MVP Votes
-mvp_players <- c(
-  "Joel Embiid",
-  "Nikola Jokic",
-  "Giannis Antetokounmpo",
-  "Jayson Tatum",
-  "Shai Gilgeous-Alexander",
-  "Donovan Mitchell",
-  "Domantas Sabonis",
-  "Luka Doncic",
-  "Stephen Curry",
-  "Jimmy Butler",
-  "De'Aaron Fox",
-  "Jalen Brunson",
-  "Ja Morant"
-)
-
-# Check that MVP candidates have the advanced stats needed for MVP model
-nba_combined %>%
-  filter(name %in% mvp_players) %>%
-  select(name, per, bpm, ws, ts_percent)
-```
-
-```{r}
-# Remove rows with missing values (ensure accurate standardization and model construction)
-nba_model_clean <- nba_combined %>%
-  drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws)
-
-# Confirm no missinf values left in cleaned dataset for variables in use for MVP model
 colSums(is.na(nba_model_clean))
 ```
 
