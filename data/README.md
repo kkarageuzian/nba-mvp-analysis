@@ -5,6 +5,8 @@
 | ppg | Points per game |
 | rpg | Rebounds per game |
 | apg | Assists per game |
+| spg | Steals per game |
+| bpg | Blocks per game |
 | ts_percent | True shooting percentage |
 | per | Player efficiency rating |
 | bpm | Box plus minus |
