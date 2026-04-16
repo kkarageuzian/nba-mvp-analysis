@@ -211,6 +211,8 @@ ggplot(mvp_rankings, aes(x = reorder(name, mvp_score_temp), y = mvp_score_temp))
     y = "MVP Score"
   ) + 
   theme_minimal()
+
+# This plot ranks players based on our custom MVP score, which combines both production and advanced metrics (no team success pillar added yet). It shows that players like Jokic and Embiid stand out as top candidates due to strong overall performance.
 ```
 
 ```{r}
@@ -224,6 +226,8 @@ ggplot(mvp_results, aes(x = production_score, y = advanced_score, label = name))
     y = "Advanced Score (Efficiency Metrics)"
   ) +
   theme_minimal()
+
+# This plot compares each player’s production score with their advanced score to evaluate how balanced their performance is. Players in the top-right perform well in both categories, indicating strong all-around MVP-level impact.
 ```
 
 ```{r}
@@ -237,6 +241,8 @@ ggplot(mvp_results, aes(x = ppg, y = ts_percent, label = name)) +
     y = "True Shooting Percentage"
   ) +
   theme_minimal()
+
+# This plot shows the relationship between scoring volume (points per game) and efficiency (true shooting percentage). Players who are both high scorers and efficient tend to stand out as stronger MVP candidates.
 ```
 
 ```{r}
