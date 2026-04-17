@@ -7,8 +7,32 @@ author: "Kreekor Karageuzian & John Malone"
 ## Exploring the Data
 Answer the following questions:
 - What is your outcome variable(s)? How well does it measure the outcome you are interested? How does it relate to your expectations?
+
+We plan to measure the MVP voting points won (mvp_points) and a custom MVP score, which will be calculated by applying our own weights to various explanatory variables to predict the MVP.
+
+
 - What are your key explanatory variables?
+
+Currently, our key explanatory variables are usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm.
+
+
 - In addition, create a table of summary statistics for the variables you are planning to use.
+
+### Summary Statistics
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-summary
+#| tbl-cap: "Summary Statistics for NBA MVP Model Variables"
+
+library(vtable)
+library(dplyr)
+
+nba_combined %>%
+  select(usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm) %>%
+  sumtable(out = 'kable') # 'kable' ensures it formats nicely for Quarto/Markdown
+```
 
 
 ## Data Wrangling and Transformations
@@ -283,8 +307,11 @@ ggplot(mvp_compare %>% filter(mvp_points > 0),
 ```
 
 ```{r}
-ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points)) +
+#Plot comparing offensive rating to mvp points
+ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points, label = name)) +
   geom_point(size = 3) +
+  geom_text(nudge_y = 50, size = 3) +
+  scale_x_continuous(expand = expansion(mult = 0.1)) +
   labs(
     title = "Offesnive Rating vs MVP Voting Points",
     x = "Offensive Rating",
@@ -294,8 +321,11 @@ ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points)) +
 ```
 
 ```{r}
-ggplot(mvp_compare, aes(x = d_rtg, y = mvp_points)) +
+#Plot comparing defensive rating to mvp points
+ggplot(mvp_compare, aes(x = d_rtg, y = mvp_points, label = name)) +
   geom_point(size = 3) +
+  geom_text(nudge_y = 50, size = 3) +
+  scale_x_continuous(expand = expansion(mult = 0.15)) +
   labs(
     title = "Defensive Rating vs MVP Voting Points",
     x = "Defensive Rating",
