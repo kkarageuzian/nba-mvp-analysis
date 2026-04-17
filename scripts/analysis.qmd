@@ -8,28 +8,42 @@ execute:
 ---
 
 ## Exploring the Data
-Answer the following questions:
+
 - What is your outcome variable(s)? How well does it measure the outcome you are interested? How does it relate to your expectations?
 
-We plan to measure the MVP voting points won (mvp_points) and a custom MVP score, which will be calculated by applying our own weights to various explanatory variables to predict the MVP.
+Our primary outcome variable is mvp_points, which reflects how players performed in the actual 2022-2023 season MVP voting. We will use this as a benchmark for evaluating player performance. 
+
+We also created a custom MVP score which combines performance metrics to estimate MVP performance based on statistics. This will let us compare our model's rankings to the actual voting results and see how statistics can explain MVP outcomes. 
+
+We expect players like Nikola Jokic and Joel Embiid to rank highly in our model, but it could change when we add in factors like team success (will need to go to office hours to help me add this variable in).  
 
 
 - What are your key explanatory variables?
 
-Currently, our key explanatory variables are usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm.
+Currently, our key explanatory variables are usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm. We will probably reduce the explanatory variables (multicollinearity reasons) or choose different ones to see which one create the strongest models for our analysis. 
 
 
 - In addition, create a table of summary statistics for the variables you are planning to use.
 
+In our table of summary statistics, we see the distribution of all the variables in the model. There is substantial variation across all the players as every player has different roles, usage, and minutes played per game. This is why we needed standardization before creating our custom MVP score. 
 
 ## Data Wrangling and Transformations
+
 Our data was obtained from two datasets: One from NBA Stuffer named nba_2022-23_all_stats.csv and another from Kaggle named nba_player_props.csv, which include observations about player statistics and advanced metrics. These were merged using player names after cleaning inconsistencies in formatting.
 
-We removed a few missing values to ensure accurate calculations and created new variables using z-score standardization. These standardized variables were used to construct a production score and an advanced score, which were then combined into a final MVP score. We focused only on players who received MVP votes to narrow the analysis to relevant candidates.
+Some of the cleaning steps included were:
+- removing some missing values for key variables to ensure accurate calculations
+- standardizing variables using z-scores so that all metrics are on a comparable scale 
+- multiplying the turnover statistic by -1 because it's a negative effect 
 
-- Are you deciding to exclude any observations? If so, why?
+Some of the new variables we created included were:
+- Production score: average of standardized box score stats
+- Advanced score: average of standardized efficiency and advanced metrics
+- Custom MVP score: weight combination of production, advanced, and team success scores (soon to be added)
 
-We created a new variable to import MVP votes per player to compare to our custom MVP model. We are also planning on adding another variable, Team Win %, add another pillar in our custom model. 
+We also filtered the dataset to only include player who received MVP votes, to reduce noise and so that our results were focused on the relevant candidates for analysis. 
+
+We created a new variable to import MVP votes per player to compare to our custom MVP model. As we mentioned earlier, we are also planning on adding another variable, Team Win %, to add another pillar in our custom model. 
 
 
 ```{r}
