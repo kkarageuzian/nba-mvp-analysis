@@ -1,7 +1,10 @@
 ---
 title: "NBA_MVP"
-format: pdf
+format: html
 author: "Kreekor Karageuzian & John Malone"
+execute: 
+  warning: false
+  message: false
 ---
 
 ## Exploring the Data
@@ -17,22 +20,6 @@ Currently, our key explanatory variables are usg_percent, x2pa, x3pa, ppg, rpg, 
 
 
 - In addition, create a table of summary statistics for the variables you are planning to use.
-
-### Summary Statistics
-
-```{r}
-#| echo: false
-#| warning: false
-#| label: tbl-summary
-#| tbl-cap: "Summary Statistics for NBA MVP Model Variables"
-
-library(vtable)
-library(dplyr)
-
-nba_combined %>%
-  select(usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm) %>%
-  sumtable(out = 'kable') # 'kable' ensures it formats nicely for Quarto/Markdown
-```
 
 
 ## Data Wrangling and Transformations
@@ -107,6 +94,23 @@ nba_combine <- nba_combined %>%
   ))
 
 ```
+
+### Summary Statistics
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-summary
+#| tbl-cap: "Summary Statistics for NBA MVP Model Variables"
+
+library(vtable)
+library(dplyr)
+
+nba_combine %>%
+  select(usg_percent, x2pa, x3pa, ppg, rpg, apg, spg, bpg, tpg, o_rtg, d_rtg, ts_percent, per, ws, bpm) %>%
+  sumtable(out = 'kable') # 'kable' ensures it formats nicely for Quarto/Markdown
+```
+
 
 ```{r}
 # Remove rows with missing values (ensure accurate standardization and model construction)
