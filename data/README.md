@@ -7,10 +7,13 @@
 | apg | Assists per game |
 | spg | Steals per game |
 | bpg | Blocks per game |
+| tpg | Turnovere per game |
 | ts_percent | True shooting percentage |
 | per | Player efficiency rating |
 | bpm | Box plus minus |
 | ws | Win shares |
+| o_trg | Offensive Rating |
+| d_rtg | Defensive Rating |
 | production_score | Combined box score stats |
 | advanced_score | Combined advanced stats |
 | mvp_score_temp | Final MVP score |
