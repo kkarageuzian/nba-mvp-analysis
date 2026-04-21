@@ -1,7 +1,7 @@
 ---
 title: "NBA_MVP"
 format: html
-author: "Kreekor Karageuzian and John Malone"
+author: "Kreekor Karageuzian & John Malone"
 execute: 
   warning: false
   message: false
