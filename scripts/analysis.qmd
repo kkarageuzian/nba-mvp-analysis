@@ -365,8 +365,20 @@ mvp_compare_table
 #Add row indicating mvp candidate
 
 nba_combine <- nba_combine |> 
-  mutate(nba_candidate = case_when(
+  mutate(mvp_candidate = case_when(
     mvp_points > 0 ~ "Y",
     TRUE ~ "N"
   ))
+```
+
+```{r}
+#Logistic regression model for ppg, rpg, apg, spg, bpg, tpg
+nba_combine <- nba_combine |>
+  mutate(candidate_binary = ifelse(mvp_candidate == "Y", 1, 0))
+
+logit <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
+                data = nba_combine,
+                family = "binomial")
+
+summary(logit)
 ```
