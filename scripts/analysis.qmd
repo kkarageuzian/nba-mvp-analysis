@@ -360,3 +360,13 @@ mvp_compare_table <- mvp_compare %>%
 
 mvp_compare_table
 ```
+
+```{r}
+#Add row indicating mvp candidate
+
+nba_combine <- nba_combine |> 
+  mutate(nba_candidate = case_when(
+    mvp_points > 0 ~ "Y",
+    TRUE ~ "N"
+  ))
+```
