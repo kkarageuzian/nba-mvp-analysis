@@ -376,9 +376,19 @@ nba_combine <- nba_combine |>
 nba_combine <- nba_combine |>
   mutate(candidate_binary = ifelse(mvp_candidate == "Y", 1, 0))
 
-logit <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
+log_reg <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
                 data = nba_combine,
                 family = "binomial")
 
-summary(logit)
+summary(log_reg)
+```
+
+```{r}
+library(ggplot2)
+model_data <- model.frame(log_reg)
+
+model_data$logit <- predict(log_reg, type = "link")
+
+ggplot(model_data, aes(x = ppg, y = logit)) +
+  geom_point()
 ```
