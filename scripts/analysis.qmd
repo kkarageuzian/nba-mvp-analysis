@@ -188,6 +188,8 @@ nba_z <- nba_z %>%
   mutate(
     mvp_score = 0.4 * production_score + 0.4 * advanced_score + 0.2 * team_success_score
   )
+
+
 ```
 
 ```{r}
@@ -380,21 +382,48 @@ mvp_compare_table
 ```{r}
 # Add row indicating mvp candidate
 
-nba_combine <- nba_combine |> 
+library(dplyr)
+#Add row of MVP points, only the 12 players seen below received votes. Data is from Basketball Reference
+nba_z <- nba_z %>%
+  mutate(mvp_points = case_when(
+    name == "Joel Embiid"             ~ 915,
+    name == "Nikola Jokic"            ~ 674,
+    name == "Giannis Antetokounmpo"   ~ 606,
+    name == "Jayson Tatum"            ~ 280,
+    name == "Shai Gilgeous-Alexander" ~ 46,
+    name == "Donovan Mitchell"        ~ 30,
+    name == "Domantas Sabonis"        ~ 27,
+    name == "Luka Doncic"             ~ 10,
+    name == "Stephen Curry"           ~ 5,
+    name == "Jimmy Butler"            ~ 3,
+    name == "De'Aaron Fox"            ~ 2,
+    name == "Jalen Brunson"           ~ 1,
+    TRUE ~ 0  # Assigns 0 to everyone else
+  ))
+
+```
+
+```{r}
+nba_z <- nba_z |> 
   mutate(mvp_candidate = case_when(
     mvp_points > 0 ~ "Y",
     TRUE ~ "N"
   ))
+
+nba_logit <- nba_z |>
+  mutate(mvp_score = 0.4 * production_score + 0.4 * advanced_score + 0.2 * team_success_score)
+
+nba_logit
 ```
 
 
 ```{r}
-# Logistic regression model for ppg, rpg, apg, spg, bpg, tpg
-nba_combine <- nba_combine |>
+# Logistic regression model for mvp score
+nba_logit <- nba_logit |>
   mutate(candidate_binary = ifelse(mvp_candidate == "Y", 1, 0))
 
-logit <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
-                data = nba_combine,
+logit <- glm(candidate_binary ~ mvp_score, 
+                data = nba_logit,
                 family = "binomial")
 
 summary(logit)
