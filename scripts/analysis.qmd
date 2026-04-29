@@ -454,3 +454,35 @@ ggplot(nba_z, aes(x = production_score, y = advanced_score, color = cluster)) +
   ) +
   theme_minimal()
 ```
+
+```{r}
+ggplot(mvp_compare_table, aes(x = mvp_score, y = mvp_points, label = name)) +
+  geom_point(size = 3) +
+  geom_text(nudge_y = 50, size = 3) +
+  scale_x_continuous(expand = expansion(mult = 0.15)) +
+  labs(
+    title = "MVP Score vs MVP Voting Points",
+    x = "MVP Score",
+    y = "MVP Points"
+  ) +
+  theme_minimal()
+```
+```{r}
+library(broom)
+library(yardstick)
+
+# 1. Get predictions (probabilities)
+nba_results <- logit %>%
+  augment(type.predict = "response") %>%
+  mutate(pred_binary = factor(ifelse(.fitted > 0.4, 1, 0)),
+         candidate_binary = factor(candidate_binary))
+
+# 2. Generate the Confusion Matrix
+nba_results %>%
+  conf_mat(truth = candidate_binary, estimate = pred_binary)
+
+# 3. Calculate Accuracy
+nba_results %>%
+  accuracy(truth = candidate_binary, estimate = pred_binary)
+```
+
