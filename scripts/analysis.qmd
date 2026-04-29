@@ -86,6 +86,16 @@ nba_combined <- props %>%
 nba_combined
 ```
 
+```{r}
+# Add team win percentage
+team_wins <- tibble(
+  team = c("Den", "Phi", "Mil", "Bos", "Okc", "Cle", "Sac",
+           "Dal", "Gol", "Mia", "Nyk", "Mem"),
+  wins = c(53, 54, 58, 57, 40, 51, 48, 38, 44, 44, 47, 51),
+  losses = c(29, 28, 24, 25, 42, 31, 34, 44, 38, 38, 35, 31)
+) %>%
+  mutate(team_win_pct = wins / (wins + losses))
+```
 
 ```{r}
 library(dplyr)
@@ -125,11 +135,11 @@ nba_combine %>%
   sumtable(out = 'kable') # 'kable' ensures it formats nicely for Quarto/Markdown
 ```
 
-
 ```{r}
 # Remove rows with missing values (ensure accurate standardization and model construction)
 nba_model_clean <- nba_combined %>%
-  drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws)
+  left_join(team_wins, by = "team") %>%
+  drop_na(ppg, apg, rpg, bpg, spg, tpg, ts_percent, per, bpm, ws, team_win_pct)
 
 # Confirm no missing values left in cleaned dataset for variables in use for MVP model
 colSums(is.na(nba_model_clean))
@@ -149,6 +159,7 @@ nba_z <- nba_model_clean %>%
     PER_z = as.numeric(scale(per)),
     BPM_z = as.numeric(scale(bpm)),
     WS_z = as.numeric(scale(ws)),
+    TEAM_WIN_z = as.numeric(scale(team_win_pct))
   )
 ```
 
@@ -164,13 +175,18 @@ nba_z <- nba_z %>%
   mutate(
     advanced_score = (TS_z + PER_z + BPM_z + WS_z) / 4
   )
+
+nba_z <- nba_z %>%
+  mutate(
+    team_success_score = (TEAM_WIN_z)
+  )
 ```
 
 ```{r}
 # MVP Score (Temporary - no team success yet)
 nba_z <- nba_z %>%
   mutate(
-    mvp_score_temp = 0.5 * production_score + 0.5 * advanced_score
+    mvp_score = 0.4 * production_score + 0.4 * advanced_score + 0.2 * team_success_score
   )
 ```
 
@@ -259,19 +275,19 @@ nba_combined %>%
 ```{r}
 # Rank Players
 mvp_rankings <- mvp_results %>%
-  select(name, team, production_score, advanced_score, mvp_score_temp) %>%
-  arrange(desc(mvp_score_temp))
+  select(name, team, production_score, advanced_score, mvp_score) %>%
+  arrange(desc(mvp_score))
 
 mvp_rankings
 ```
 
 ```{r}
 # Visualizing Scores
-ggplot(mvp_rankings, aes(x = reorder(name, mvp_score_temp), y = mvp_score_temp)) +
+ggplot(mvp_rankings, aes(x = reorder(name, mvp_score), y = mvp_score)) +
   geom_col(fill = "steelblue") +
   coord_flip() +
   labs(
-    title = "Custom MVP Rankings (No Team Success Yet)",
+    title = "Custom MVP Rankings",
     x = "Player",
     y = "MVP Score"
   ) + 
@@ -325,7 +341,7 @@ ggplot(mvp_compare %>% filter(mvp_points > 0),
 ```
 
 ```{r}
-#Plot comparing offensive rating to mvp points
+# Plot comparing offensive rating to mvp points
 ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points, label = name)) +
   geom_point(size = 3) +
   geom_text(nudge_y = 50, size = 3) +
@@ -339,7 +355,7 @@ ggplot(mvp_compare, aes(x = o_rtg, y = mvp_points, label = name)) +
 ```
 
 ```{r}
-#Plot comparing defensive rating to mvp points
+# Plot comparing defensive rating to mvp points
 ggplot(mvp_compare, aes(x = d_rtg, y = mvp_points, label = name)) +
   geom_point(size = 3) +
   geom_text(nudge_y = 50, size = 3) +
@@ -355,14 +371,14 @@ ggplot(mvp_compare, aes(x = d_rtg, y = mvp_points, label = name)) +
 ```{r}
 # Comparison Table for Custom Score vs Real Voting Results (without team success)
 mvp_compare_table <- mvp_compare %>%
-  select(name, team, mvp_score_temp, mvp_points) %>%
-  arrange(desc(mvp_score_temp))
+  select(name, team, mvp_score, mvp_points) %>%
+  arrange(desc(mvp_score))
 
 mvp_compare_table
 ```
 
 ```{r}
-#Add row indicating mvp candidate
+# Add row indicating mvp candidate
 
 nba_combine <- nba_combine |> 
   mutate(mvp_candidate = case_when(
@@ -371,24 +387,41 @@ nba_combine <- nba_combine |>
   ))
 ```
 
+
 ```{r}
-#Logistic regression model for ppg, rpg, apg, spg, bpg, tpg
+# Logistic regression model for ppg, rpg, apg, spg, bpg, tpg
 nba_combine <- nba_combine |>
   mutate(candidate_binary = ifelse(mvp_candidate == "Y", 1, 0))
 
-log_reg <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
+logit <- glm(candidate_binary ~ ppg + rpg + apg + spg + bpg + tpg, 
                 data = nba_combine,
                 family = "binomial")
 
-summary(log_reg)
+summary(logit)
+```
+
+
+```{r}
+set.seed(123)
+
+# K-means clustering with 2 clusters (high vs low performers)
+kmeans_result <- kmeans(nba_z$mvp_score, centers = 2)
+
+# Add cluster labels
+nba_z$cluster <- as.factor(kmeans_result$cluster)
 ```
 
 ```{r}
-library(ggplot2)
-model_data <- model.frame(log_reg)
-
-model_data$logit <- predict(log_reg, type = "link")
-
-ggplot(model_data, aes(x = ppg, y = logit)) +
-  geom_point()
+# Plot clusters to visualize how players group based on performance (each point represents a player)
+# Helps identify whether MVP-level player form a distinct group
+ggplot(nba_z, aes(x = production_score, y = advanced_score, color = cluster)) +
+  geom_point(size = 3) +
+  geom_text(aes(label = ifelse(name %in% mvp_players, name, "")),
+            size = 3, vjust = -1) +
+  labs(
+    title = "Clusters of Players (Production vs Advanced Score)",
+    x = "Production Score",
+    y = "Advanced Score"
+  ) +
+  theme_minimal()
 ```
